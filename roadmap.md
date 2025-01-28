@@ -30,13 +30,32 @@
 **一、 环境搭建与准备 (重要且基础，建议分配足够的时间)**
 
 1. **安装 Ubuntu 系统:**  选择 Ubuntu 16.04 或 20.10 版本，并进行安装。
+
 2. **安装 NASM:** 使用 `sudo apt-get install nasm` 命令安装 NASM 汇编器，并通过编译一个简单的汇编程序来验证安装是否成功。
+
 3. **安装 Bochs:** 使用 `sudo apt-get install bochs vgabios bochs-x bximage` 命令安装 Bochs 虚拟机及其相关工具。使用 `whereis bochs` 确认安装路径，后面配置 `bochsrc.txt` 文件会用到。
-   - **bochs路径：** `bochs: /usr/bin/bochs /usr/lib/x86_64-linux-gnu/bochs /usr/share/bochs /usr/share/man/man1/bochs.1.gz`
+
+   ```
+   /usr/bin/bochs /usr/lib/bochs /usr/share/bochs /usr/share/man/man1/bochs.1.gz
+   ```
+
 4. **下载 freedos.img:** 从 Bochs 官网下载 `freedos.img` 软盘映像文件，解压后保留 `a.img` 并重命名为 `freedos.img` 作为系统启动盘。
+
+   ```
+   wget https://bochs.sourceforge.io/guestos/freedos-img.tar.gz
+   tar -zxvf freedos-img.tar.gz
+   ```
+
 5. **创建用户软盘映像:** 使用 `bximage` 工具创建一个空白的 1.44M 软盘映像文件 (例如 `pmtest.img`)，用于存放你的测试程序。
+
 6. **配置 bochsrc.txt:**  根据你的 Bochs 安装路径，正确配置 `bochsrc.txt` 文件，主要包括内存大小、BIOS 和 VGA ROM 映像文件路径、软盘映像文件路径和启动设备等。
-7. **测试 Bochs:** 使用 `bochs -f bochsrc.txt` 命令启动 Bochs，看是否能够正常加载 `freedos.img`。如果能进入 Freedos，尝试使用 `format B: /s` 格式化你创建的用户软盘映像 (pmtest.img)，然后使用 `mount` 命令将其挂载到 Ubuntu 的某个目录下，方便后续拷贝测试程序。
+
+7. **测试 Bochs:** 使用 `bochs -f bochsrc.txt` 命令启动 Bochs，看是否能够正常加载 `freedos.img`。如果能进入 Freedos，尝试使用 `format.exe B:` 格式化你创建的用户软盘映像 (pmtest.img)，然后使用 `mount` 命令将其挂载到 Ubuntu 的某个目录下，方便后续拷贝测试程序。
+
+   ```
+   mount -o loop ./pmtest.img /mnt/floppyB
+   sudo cp -r ./pmtestSrc /mnt/floppyB
+   ```
 
 **二、 学习与理解基础知识 (这是理论基础，确保充分理解)**
 
