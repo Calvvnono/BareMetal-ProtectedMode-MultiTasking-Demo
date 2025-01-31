@@ -4,4 +4,4 @@ sudo umount /mnt/floppyB
 sudo mount -o loop pmtest.img /mnt/floppyB
 sudo rm /mnt/floppyB/mt.com
 sudo cp ./mt.com /mnt/floppyB
-bochs
+bochs -f bochsrc.txt
