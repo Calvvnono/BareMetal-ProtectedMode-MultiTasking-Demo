@@ -1,15 +1,25 @@
 ; ==========================================
 ; pmtest3.asm
-; 编译方法：nasm pmtest3.asm -o pmtest3.com
+; 功能总结:
+; 该程序切换到保护模式，设置全局描述符表(GDT)、局部描述符表(LDT)，并在屏幕上显示信息。
+
+; 程序从[LABEL_BEGIN]处开始执行，先在实模式下完成GDT各描述符的初始化。
+; 将CR0的PE位（最低位）置1后，通过jmp远跳转进入32位保护模式段[LABEL_SEG_CODE32]。
+; 在保护模式下设置段寄存器、初始化堆栈，显示字符串，并加载LDT。
+; 从保护模式的代码段跳转到LDT中的代码段，再用jmp切回16位代码段[LABEL_SEG_CODE16]。
+; 通过清除CR0的PE位并用jmp返回到[LABEL_REAL_ENTRY]恢复实模式，最后调用int 21h退出。
 ; ==========================================
 
-%include	"pm.inc"	; 常量, 宏, 以及一些说明
+%include	"pm.inc"	; 引入常量、宏和说明
 
 org	0100h
 	jmp	LABEL_BEGIN
 
 [SECTION .gdt]
 ; GDT
+
+; org 0100h：这条指令告诉汇编器，程序的起始地址是0x0100。这是因为在DOS下，.COM文件的加载地址通常是0x0100。
+; jmp LABEL_BEGIN：这条指令在程序加载后立即跳转到LABEL_BEGIN标签处执行。
 ;                                         段基址,       段界限     , 属性
 LABEL_GDT:		Descriptor	       0,                 0, 0     		; 空描述符
 LABEL_DESC_NORMAL:	Descriptor	       0,            0ffffh, DA_DRW		; Normal 描述符
@@ -57,13 +67,14 @@ LABEL_STACK:
 	times 512 db 0
 
 TopOfStack	equ	$ - LABEL_STACK - 1
-
 ; END of [SECTION .gs]
 
 
 [SECTION .s16]
 [BITS	16]
+; 这部分代码定义了一个16位代码段。[BITS 16]指示汇编器在这个段中使用16位指令集。
 LABEL_BEGIN:
+	; 初始化段寄存器
 	mov	ax, cs
 	mov	ds, ax
 	mov	es, ax
@@ -157,11 +168,12 @@ LABEL_BEGIN:
 	mov	cr0, eax
 
 	; 真正进入保护模式
-	jmp	dword SelectorCode32:0	; 执行这一句会把 SelectorCode32 装入 cs, 并跳转到 Code32Selector:0  处
+	jmp	dword SelectorCode32:0	; 跳转到 32 位代码段
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-LABEL_REAL_ENTRY:		; 从保护模式跳回到实模式就到了这里
+LABEL_REAL_ENTRY:		; 从保护模式跳回到实模式
+	; 恢复段寄存器
 	mov	ax, cs
 	mov	ds, ax
 	mov	es, ax
@@ -169,14 +181,16 @@ LABEL_REAL_ENTRY:		; 从保护模式跳回到实模式就到了这里
 
 	mov	sp, [SPValueInRealMode]
 
-	in	al, 92h		; ┓
-	and	al, 11111101b	; ┣ 关闭 A20 地址线
-	out	92h, al		; ┛
+	; 关闭 A20 地址线
+	in	al, 92h
+	and	al, 11111101b
+	out	92h, al
 
 	sti			; 开中断
 
-	mov	ax, 4c00h	; ┓
-	int	21h		; ┛回到 DOS
+	; 返回 DOS
+	mov	ax, 4c00h
+	int	21h
 ; END of [SECTION .s16]
 
 
@@ -184,19 +198,18 @@ LABEL_REAL_ENTRY:		; 从保护模式跳回到实模式就到了这里
 [BITS	32]
 
 LABEL_SEG_CODE32:
+	; 设置段选择子
 	mov	ax, SelectorData
 	mov	ds, ax			; 数据段选择子
 	mov	ax, SelectorVideo
 	mov	gs, ax			; 视频段选择子
-
 	mov	ax, SelectorStack
 	mov	ss, ax			; 堆栈段选择子
 
 	mov	esp, TopOfStack
 
-
-	; 下面显示一个字符串
-	mov	ah, 0Ch			; 0000: 黑底    1100: 红字
+	; 显示字符串
+	mov	ah, 0Ch			; 设置颜色: 黑底红字
 	xor	esi, esi
 	xor	edi, edi
 	mov	esi, OffsetPMMessage	; 源数据偏移
@@ -210,10 +223,8 @@ LABEL_SEG_CODE32:
 	add	edi, 2
 	jmp	.1
 .2:	; 显示完毕
-
 	call	DispReturn
-
-	; Load LDT
+	; 加载 LDT
 	mov	ax, SelectorLDT
 	lldt	ax
 
@@ -246,7 +257,7 @@ SegCode32Len	equ	$ - LABEL_SEG_CODE32
 ALIGN	32
 [BITS	16]
 LABEL_SEG_CODE16:
-	; 跳回实模式:
+	; 跳回实模式
 	mov	ax, SelectorNormal
 	mov	ds, ax
 	mov	es, ax
@@ -259,7 +270,7 @@ LABEL_SEG_CODE16:
 	mov	cr0, eax
 
 LABEL_GO_BACK_TO_REAL:
-	jmp	0:LABEL_REAL_ENTRY	; 段地址会在程序开始处被设置成正确的值
+	jmp	0:LABEL_REAL_ENTRY	; 跳转回实模式
 
 Code16Len	equ	$ - LABEL_SEG_CODE16
 
@@ -285,15 +296,17 @@ SelectorLDTCodeA	equ	LABEL_LDT_DESC_CODEA	- LABEL_LDT + SA_TIL
 ALIGN	32
 [BITS	32]
 LABEL_CODE_A:
+	; 设置视频段选择子
 	mov	ax, SelectorVideo
 	mov	gs, ax			; 视频段选择子(目的)
 
-	mov	edi, (80 * 12 + 0) * 2	; 屏幕第 10 行, 第 0 列。
-	mov	ah, 0Ch			; 0000: 黑底    1100: 红字
+	; 显示字符 'L'
+	mov	edi, (80 * 12 + 0) * 2	; 屏幕第 12 行, 第 0 列。
+	mov	ah, 0Ch			; 设置颜色: 黑底红字
 	mov	al, 'L'
 	mov	[gs:edi], ax
 
-	; 准备经由16位代码段跳回实模式
+	; 准备通过16位代码段跳回实模式
 	jmp	SelectorCode16:0
 CodeALen	equ	$ - LABEL_CODE_A
 ; END of [SECTION .la]
