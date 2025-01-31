@@ -3,10 +3,34 @@
 ; 编译方法：nasm pmtest2.asm -o pmtest2.com
 ; ==========================================
 
+; 这段代码的主要功能是从实模式切换到保护模式，并在保护模式下执行一些操作后再切换回实模式。以下是代码的详细功能总结：
+; 1. **初始化段描述符**：
+;     - 初始化16位代码段描述符、32位代码段描述符、数据段描述符和堆栈段描述符。通过计算段基址并将其写入描述符表，确保在保护模式下正确访问内存。
+; 2. **准备加载全局描述符表寄存器（GDTR）**：
+;     - 计算GDT的基址并将其存入`GdtPtr`，为加载GDTR作准备。
+; 3. **加载GDTR**：
+;     - 使用`lgdt`指令加载GDTR，将GDT的基址和界限加载到GDTR中。
+; 4. **关闭中断**：
+;     - 使用`cli`指令关闭中断，确保在切换模式时不会被中断打断。
+; 5. **打开地址线A20**：
+;     - 通过操作端口`92h`打开地址线A20，以便访问1MB以上的内存。
+
+; 6. **切换到保护模式**：
+;     - 设置CR0寄存器的PE位（保护模式启用位），将处理器切换到保护模式。
+;     - 使用远跳转指令`jmp dword SelectorCode32:0`，将32位代码段选择子加载到CS寄存器，并跳转到保护模式下的代码段。
+; 7. **保护模式下的操作**：
+;     - 在保护模式下执行一些操作（如显示字符等），具体操作在代码中未完全展示。
+; 8. **切换回实模式**：
+;     - 在保护模式下执行完操作后，通过设置段寄存器和CR0寄存器，切换回实模式。
+;     - 使用远跳转指令`jmp 0:LABEL_REAL_ENTRY`，跳转到实模式下的代码段。
+; 9. **实模式下的操作**：
+;     - 在实模式下继续执行一些操作（如设置段寄存器等），具体操作在代码中未完全展示。
+; 总结：这段代码实现了从实模式到保护模式的切换，并在保护模式下执行一些操作后再切换回实模式。通过初始化段描述符、加载GDTR、关闭中断、打开地址线A20、设置CR0寄存器等步骤，确保在切换过程中正确设置和访问内存。
+
 %include	"pm.inc"	; 常量, 宏, 以及一些说明
 
 org	0100h
-	jmp	LABEL_BEGIN
+	jmp	LABEL_BEGIN	; 跳转到程序开始位置
 
 [SECTION .gdt]
 ; GDT
@@ -65,23 +89,24 @@ TopOfStack	equ	$ - LABEL_STACK - 1
 [BITS	16]
 LABEL_BEGIN:
 	mov	ax, cs
-	mov	ds, ax
-	mov	es, ax
-	mov	ss, ax
-	mov	sp, 0100h
+	mov	ds, ax	; 设置数据段寄存器
+	mov	es, ax	; 设置附加段寄存器
+	mov	ss, ax	; 设置堆栈段寄存器
+	mov	sp, 0100h	; 设置堆栈指针
 
+	; 保存返回实模式的段寄存器和堆栈指针
 	mov	[LABEL_GO_BACK_TO_REAL+3], ax
 	mov	[SPValueInRealMode], sp
 
-	; 初始化 16 位代码段描述符
+	; 初始化 16 位代码段描述符，这里的代码段描述符是为了跳回实模式而设置的
 	mov	ax, cs
-	movzx	eax, ax
-	shl	eax, 4
-	add	eax, LABEL_SEG_CODE16
-	mov	word [LABEL_DESC_CODE16 + 2], ax
-	shr	eax, 16
-	mov	byte [LABEL_DESC_CODE16 + 4], al
-	mov	byte [LABEL_DESC_CODE16 + 7], ah
+	movzx eax, ax 							; eax = 0x0000xxxx
+	shl	eax, 4 								; 段选择子左移4位，得到段基址
+	add	eax, LABEL_SEG_CODE16 				; 加上段内偏移，得到完整的段基址
+	mov	word [LABEL_DESC_CODE16 + 2], ax 	; 将段基址的低16位存入描述符
+	shr	eax, 16 							; 将段基址右移16位，得到高位部分
+	mov	byte [LABEL_DESC_CODE16 + 4], al 	; 将段基址的中间8位存入描述符
+	mov	byte [LABEL_DESC_CODE16 + 7], ah 	; 将段基址的高8位存入描述符
 
 	; 初始化 32 位代码段描述符
 	xor	eax, eax
@@ -143,9 +168,9 @@ LABEL_BEGIN:
 
 LABEL_REAL_ENTRY:		; 从保护模式跳回到实模式就到了这里
 	mov	ax, cs
-	mov	ds, ax
-	mov	es, ax
-	mov	ss, ax
+	mov	ds, ax	; 设置数据段寄存器
+	mov	es, ax	; 设置附加段寄存器
+	mov	ss, ax	; 设置堆栈段寄存器
 
 	mov	sp, [SPValueInRealMode]
 
@@ -175,7 +200,6 @@ LABEL_SEG_CODE32:
 	mov	ss, ax			; 堆栈段选择子
 
 	mov	esp, TopOfStack
-
 
 	; 下面显示一个字符串
 	mov	ah, 0Ch			; 0000: 黑底    1100: 红字
@@ -308,6 +332,8 @@ SegCode32Len	equ	$ - LABEL_SEG_CODE32
 [SECTION .s16code]
 ALIGN	32
 [BITS	16]
+; LABEL_SEG_CODE16 是一个标签，表示 16 位代码段的起始地址。
+; 在初始化段描述符时，通过 add eax, LABEL_SEG_CODE16 将这个地址(段内偏移)加到段基址中，以便正确设置段描述符
 LABEL_SEG_CODE16:
 	; 跳回实模式:
 	mov	ax, SelectorNormal
