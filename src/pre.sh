@@ -1,7 +1,7 @@
 #!/bin/bash
-nasm ./a.asm -o a.com
+nasm ./mt.asm -o mt.com
 sudo umount /mnt/floppyB
 sudo mount -o loop pmtest.img /mnt/floppyB
-sudo rm /mnt/floppyB/a.com
-sudo cp ./a.com /mnt/floppyB
+sudo rm /mnt/floppyB/mt.com
+sudo cp ./mt.com /mnt/floppyB
 bochs
