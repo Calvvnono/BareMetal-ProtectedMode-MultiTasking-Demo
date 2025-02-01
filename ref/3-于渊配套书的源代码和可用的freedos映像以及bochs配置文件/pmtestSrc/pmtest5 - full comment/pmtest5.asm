@@ -447,7 +447,7 @@ LABEL_CODE_A:
 	mov	[gs:edi], ax    ;不为空显示当前字符'L'
 	
 	jmp	SelectorCode16:0 ; 准备经由16位代码段跳回实模式
-CodeALen	equ	$ - LABEL_CODE_A       ；;计算CodeA (LDT, 32 位代码段)的大小
+CodeALen	equ	$ - LABEL_CODE_A       ;计算CodeA (LDT, 32 位代码段)的大小
 ; END of [SECTION .la]
 
 
