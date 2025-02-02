@@ -67,10 +67,10 @@ SelectorLDT3        equ LABEL_TASK3_DESC_LDT 	- LABEL_GDT
 ; LDT 和任务段定义
 ; ---------------------------------------------------------------------------------------------
 ; 定义任务
-DefineTask 0, "VERY", 20, 0Ch
-DefineTask 1, "LOVE", 20, 0Dh
-DefineTask 2, "HUST", 20, 0Eh
-DefineTask 3, "MRSU", 20, 0Fh
+DefineTask 0, "VERY", 15, 0Bh
+DefineTask 1, "LOVE", 15, 0Ch
+DefineTask 2, "HUST", 15, 0Dh
+DefineTask 3, "MRSU", 15, 0Eh
 ; END of LDT 和任务段定义
 
 
@@ -105,11 +105,11 @@ ALIGN	32
 LABEL_DATA:
 ; 实模式下使用这些符号
 ; 字符串
-_szPMMessage:			db	"Shenyu Dai - U202212021", 0Ah, 0Ah, 0	; 进入保护模式后显示此字符串
+_szPMMessage:			db	"Shenyu Dai - U202212021 - Level4", 0Ah, 0Ah, 0	; 进入保护模式后显示此字符串
 _szMemChkTitle:			db	"BaseAddrL BaseAddrH LengthLow LengthHigh   Type", 0Ah, 0	; 进入保护模式后显示此字符串
 _szRAMSize			db	"RAM size:", 0
 _szReturn			db	0Ah, 0
-_szReadyMessage:			db	"Ready", 0
+_szReadyMessage:			db	"Multitasking Output:", 0
 ; 变量
 _wSPValueInRealMode		dw	0
 _dwMCRNumber:			dd	0	; Memory Check Result
@@ -127,7 +127,7 @@ _SavedIDTR:			dd	0	; 用于保存 IDTR
 _SavedIMREG:			db	0	; 中断屏蔽寄存器值
 _MemChkBuf:	times	256	db	0
 
-%define tickTimes  30;
+%define tickTimes  20;
 _RunningTask:			dd	0
 _TaskPriority:			dd	16*tickTimes, 10*tickTimes, 8*tickTimes, 6*tickTimes
 _LeftTicks:			dd	0, 0, 0, 0
@@ -339,7 +339,7 @@ LABEL_SEG_CODE32:
 	mov		ah, 0Fh
 .outputLoop:
 	mov		al, [szReadyMessage + ecx]
-	mov 	[gs:((80 * 19 + ecx) * 2)], ax
+	mov 	[gs:((80 * 14 + ecx) * 2)], ax
 	inc		ecx
 	cmp		al, 0
 	jnz		.outputLoop
