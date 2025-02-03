@@ -1,0 +1,14 @@
+# 文件名：bochsrc.txt
+# 指定虚拟机的内存大小
+megs:32
+# BIOS ROM映像文件名
+romimage: file=/usr/share/bochs/BIOS-bochs-latest
+# VGA ROM映像文件名
+vgaromimage: file=/usr/share/bochs/VGABIOS-lgpl-latest
+# 指定软盘的映像文件和状态（是否已经插入）
+floppya: 1_44=freedos.img, status=inserted
+floppyb: 1_44=pmtest.img,  status=inserted
+# 指定启动设备
+boot:a
+# 禁用鼠标
+mouse:enabled=0
