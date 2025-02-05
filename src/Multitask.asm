@@ -27,10 +27,10 @@ LABEL_DESC_DATA:	Descriptor	       0,	DataLen - 1, DA_DRW									; Data
 LABEL_DESC_STACK:	Descriptor	       0,        TopOfStack, DA_DRWA | DA_32					; Stack, 32 位
 LABEL_DESC_VIDEO:	Descriptor	 0B8000h,            0ffffh, DA_DRW + DA_DPL3					; 显存首地址
 ; TSS
-LABEL_DESC_TSS0: 	Descriptor 			0,          TSS0Len-1, DA_386TSS	   
-LABEL_DESC_TSS1: 	Descriptor 			0,          TSS1Len-1, DA_386TSS	   
-LABEL_DESC_TSS2: 	Descriptor 			0,          TSS2Len-1, DA_386TSS	   
-LABEL_DESC_TSS3: 	Descriptor 			0,          TSS3Len-1, DA_386TSS	   
+LABEL_DESC_TSS0: 	Descriptor 			0,          TSS0Len-1, DA_386TSS	   ;TSS
+LABEL_DESC_TSS1: 	Descriptor 			0,          TSS1Len-1, DA_386TSS	   ;TSS
+LABEL_DESC_TSS2: 	Descriptor 			0,          TSS2Len-1, DA_386TSS	   ;TSS
+LABEL_DESC_TSS3: 	Descriptor 			0,          TSS3Len-1, DA_386TSS	   ;TSS
 
 ; 四个任务段
 LABEL_TASK0_DESC_LDT:    Descriptor         0,   TASK0LDTLen - 1, DA_LDT
@@ -65,6 +65,7 @@ SelectorLDT3        equ LABEL_TASK3_DESC_LDT 	- LABEL_GDT
 
 
 ; LDT 和任务段定义
+; ---------------------------------------------------------------------------------------------
 ; 定义任务
 DefineTask 0, "VERY", 15, 0Bh
 DefineTask 1, "LOVE", 15, 0Ch
@@ -74,6 +75,7 @@ DefineTask 3, "MRSU", 15, 0Eh
 
 
 ; IDT
+; ---------------------------------------------------------------------------------------------
 [SECTION .idt]
 ALIGN	32
 [BITS	32]
@@ -96,6 +98,7 @@ IdtPtr		dw	IdtLen - 1		; IDT 段界限
 
 
 ; 数据段
+; ---------------------------------------------------------------------------------------------
 [SECTION .data1]	 ; 数据段
 ALIGN	32
 [BITS	32]
@@ -156,6 +159,7 @@ DataLen			equ	$ - LABEL_DATA
 ; END of [SECTION .data1]
 
 ; 全局堆栈段
+; ---------------------------------------------------------------------------------------------
 [SECTION .gs]
 ALIGN	32
 [BITS	32]
@@ -167,6 +171,7 @@ TopOfStack	equ	$ - LABEL_STACK - 1
 
 
 ; 16位代码段
+; ---------------------------------------------------------------------------------------------
 [SECTION .s16]
 [BITS	16]
 LABEL_BEGIN:
@@ -201,9 +206,13 @@ LABEL_MEM_CHK_OK:
 	InitDescBase LABEL_SEG_CODE32,LABEL_DESC_CODE32
 	InitDescBase LABEL_DATA, LABEL_DESC_DATA
 	InitDescBase LABEL_STACK, LABEL_DESC_STACK
+	; 初始化任务描述符0
 	InitTaskDescBase 0
+	; 初始化任务描述符1
 	InitTaskDescBase 1
+	; 初始化任务描述符2
 	InitTaskDescBase 2
+	; 初始化任务描述符3
 	InitTaskDescBase 3
 	; 为加载 GDTR 作准备
 	xor	eax, eax
@@ -338,7 +347,7 @@ LABEL_SEG_CODE32:
 	call	SetRealmode8259A	; 恢复 8259A 以顺利返回实模式, 未执行
 	jmp		SelectorCode16:0	; 返回实模式, 未执行
 
-; 时钟中断处理程序
+; int handler ------------------------------------------------------------------
 _ClockHandler:
 ClockHandler	equ	_ClockHandler - $$
 	push	ds
@@ -420,7 +429,21 @@ ClockHandler	equ	_ClockHandler - $$
 	pop		ds
 	iretd
 
+; ---------------------------------------------------------------------------
+_UserIntHandler:
+UserIntHandler	equ	_UserIntHandler - $$
+	mov	ah, 0Ch				; 0000: 黑底    1100: 红字
+	mov	al, 'I'
+	mov	[gs:((80 * 0 + 70) * 2)], ax	; 屏幕第 0 行, 第 70 列。
+	iretd
 
+_SpuriousHandler:
+SpuriousHandler	equ	_SpuriousHandler - $$
+	mov	ah, 0Ch				; 0000: 黑底    1100: 红字
+	mov	al, '!'
+	mov	[gs:((80 * 0 + 75) * 2)], ax	; 屏幕第 0 行, 第 75 列。
+	iretd
+; ---------------------------------------------------------------------------
 
 InitPageTable 0
 InitPageTable 1
@@ -446,6 +469,7 @@ LABEL_SEG_CODE16:
 	mov		ss, ax
 
 	mov		eax, cr0
+	; and		al, 11111110b	; 仅切换到实模式
 	and		eax, 7ffffffeh		; 切换到实模式并关闭分页
 	mov		cr0, eax
 
