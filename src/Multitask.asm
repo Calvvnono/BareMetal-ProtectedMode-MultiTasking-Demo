@@ -3,15 +3,15 @@
 ; Page directory base addresses for 4 tasks
 PageDirBase0		equ	200000h	; Page directory start address: 2M
 PageTblBase0		equ	201000h	; Page table start address: 2M + 4K
-PageDirBase1		equ	210000h	; Page directory start address: 2M + 64K
-PageTblBase1		equ	211000h	; Page table start address: 2M + 64K + 4K
-PageDirBase2		equ	220000h	; Page directory start address: 2M + 128K
-PageTblBase2		equ	221000h	; Page table start address: 2M + 128K + 4K
-PageDirBase3		equ	230000h	; Page directory start address: 2M + 192K
-PageTblBase3		equ	231000h	; Page table start address: 2M + 192K + 4K
+PageDirBase1		equ	210000h
+PageTblBase1		equ	211000h
+PageDirBase2		equ	220000h
+PageTblBase2		equ	221000h
+PageDirBase3		equ	230000h
+PageTblBase3		equ	231000h
 
 org 0100h
-jmp LABEL_BEGIN
+jmp StartUp
 
 [SECTION .gdt]
 ;                                      Base,       Limit     , Attribute
@@ -36,8 +36,8 @@ LABEL_TASK1_DESC_LDT:    Descriptor         0,   TASK1LDTLen - 1, DA_LDT
 LABEL_TASK2_DESC_LDT:    Descriptor         0,   TASK2LDTLen - 1, DA_LDT
 LABEL_TASK3_DESC_LDT:    Descriptor         0,   TASK3LDTLen - 1, DA_LDT
 
-GdtLen		equ	$ - LABEL_GDT	; GDT length
-GdtPtr		dw	GdtLen - 1	; GDT limit
+GdtLen		equ	$ - LABEL_GDT
+GdtPtr		dw	GdtLen - 1
 dd	0		; GDT base address
 
 ; GDT Selectors
@@ -80,8 +80,8 @@ Gate	SelectorCode32, SpuriousHandler,      0, DA_386IGate
 %endrep
 .080h:			Gate	SelectorCode32,  UserIntHandler,      0, DA_386IGate
 
-IdtLen		equ	$ - LABEL_IDT	; IDT Length
-IdtPtr		dw	IdtLen - 1		; IDT Limit
+IdtLen		equ	$ - LABEL_IDT
+IdtPtr		dw	IdtLen - 1
 dd	0				; IDT Base Address
 
 [SECTION .data1]	 ; Data segment
@@ -151,7 +151,7 @@ TopOfStack	equ	$ - LABEL_STACK - 1
 
 [SECTION .s16]
 [BITS	16]
-LABEL_BEGIN:
+StartUp:
 ; Preparation
 mov	ax, cs
 mov	ds, ax
@@ -189,14 +189,12 @@ InitTaskDescBase 1
 InitTaskDescBase 2
 InitTaskDescBase 3
 ; Prepare to load GDTR
-xor	eax, eax
-mov	ax, ds
+mov	eax, ds
 shl	eax, 4
 add	eax, LABEL_GDT		; eax <- gdt base address
 mov	dword [GdtPtr + 2], eax	; [GdtPtr + 2] <- gdt base address
 ; Prepare to load IDTR
-xor	eax, eax
-mov	ax, ds
+mov	eax, ds
 shl	eax, 4
 add	eax, LABEL_IDT		; eax <- idt base address
 mov	dword [IdtPtr + 2], eax	; [IdtPtr + 2] <- idt base address
@@ -220,7 +218,7 @@ mov	eax, cr0
 or	eax, 1
 mov	cr0, eax
 ; Enter protected mode
-jmp	dword SelectorCode32:0	; Execute this line to load SelectorCode32 into cs and jump to Code32Selector:0
+jmp	dword SelectorCode32:0
 
 LABEL_REAL_ENTRY:		; Jump back to real mode from protected mode
 mov	ax, cs
@@ -282,14 +280,14 @@ call	LABEL_INIT_PAGE_TABLE1
 call	LABEL_INIT_PAGE_TABLE2
 call	LABEL_INIT_PAGE_TABLE3
 ; Initialize ticks
-xor 	ecx, ecx
+mov 	ecx, 0
 .initTicks:
 mov     eax, dword [TaskPriority + ecx*4]
 mov     dword [LeftTicks + ecx*4], eax
 inc   	ecx
 cmp    	ecx, 4
 jne     .initTicks
-xor 	ecx, ecx
+mov 	ecx, 0
 sti							; Enable interrupts
 mov		eax, PageDirBase0	; Load CR3
 mov		cr3, eax
@@ -303,7 +301,7 @@ jmp		short .1
 nop
 ; Prompt initialization is complete
 .ready:
-xor 	ecx, ecx
+mov 	ecx, 0
 mov		ah, 0Fh
 .outputLoop:
 mov		al, [szReadyMessage + ecx]
@@ -340,9 +338,9 @@ or      eax, dword [LeftTicks + 8]
 or      eax, dword [LeftTicks + 12]
 jz      .allFinished	; Jump to allFinished and reassign values
 .goToNext:  ; Select the next task
-xor     eax, eax
-xor     esi, esi
-xor		ecx, ecx
+mov     eax, 0
+mov     esi, 0
+mov		ecx, 0
 .getMaxLoop:  ; Get the task with the largest Ticks
 cmp     dword [LeftTicks+eax*4], ecx
 jle     .notMax
@@ -382,14 +380,14 @@ jmp	 .exit
 
 ; If all are finished, reassign values
 .allFinished:  ; Local function
-xor		ecx, ecx
+mov		ecx, 0
 .setLoop:
 mov     eax, dword [TaskPriority + ecx*4]
 mov     dword [LeftTicks + ecx*4], eax
 inc   	ecx
 cmp    	ecx, 4
 jne     .setLoop
-xor 	ecx, ecx
+mov 	ecx, 0
 jmp     .goToNext
 
 .exit:
@@ -436,6 +434,6 @@ and		eax, 7ffffffeh		; Switch to real mode and turn off paging
 mov		cr0, eax
 
 LABEL_GO_BACK_TO_REAL:
-jmp		0:LABEL_REAL_ENTRY	; The segment address will be set to the correct value at the beginning of the program
+jmp		0:LABEL_REAL_ENTRY
 
 Code16Len	equ	$ - LABEL_SEG_CODE16
