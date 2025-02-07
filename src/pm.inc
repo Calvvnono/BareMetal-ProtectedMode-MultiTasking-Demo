@@ -1,5 +1,4 @@
 ; 常量，宏定义内容
-
 DA_32		EQU	4000h	; 32 位段
 DA_LIMIT_4K	EQU	8000h	; 段界限粒度为 4K 字节
 
@@ -235,7 +234,6 @@ TSS%1Len		equ	$ - LABEL_TSS%1
 ; TSS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-
 ; 定义任务
 ; usage: DefineTask num, string, row,color
 %macro DefineTask 4
@@ -283,7 +281,6 @@ LABEL_INIT_PAGE_TABLE%1:
 ; 切换到任务
 ; usage: SwitchTask num
 %macro SwitchTask 1
-
 	mov		ax, SelectorLDT%1	; ┳ 加载 LDT
 	lldt	ax					; ┛
 	mov		eax, PageDirBase%1	; ┳ 加载 CR3

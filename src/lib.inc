@@ -1,97 +1,3 @@
-; Init8259A --------------------------------------------------------------------
-Init8259A:
-	mov		al, 011h
-	out		020h, al	; 主8259, ICW1.
-	call	io_delay
-
-	out		0A0h, al	; 从8259, ICW1.
-	call	io_delay
-
-	mov		al, 020h	; IRQ0 对应中断向量 0x20
-	out		021h, al	; 主8259, ICW2.
-	call	io_delay
-
-	mov		al, 028h	; IRQ8 对应中断向量 0x28
-	out		0A1h, al	; 从8259, ICW2.
-	call	io_delay
-
-	mov		al, 004h	; IR2 对应从8259
-	out		021h, al	; 主8259, ICW3.
-	call	io_delay
-
-	mov		al, 002h	; 对应主8259的 IR2
-	out		0A1h, al	; 从8259, ICW3.
-	call	io_delay
-
-	mov		al, 001h
-	out		021h, al	; 主8259, ICW4.
-	call	io_delay
-
-	out		0A1h, al	; 从8259, ICW4.
-	call	io_delay
-
-	mov		al, 11111110b	; 仅仅开启定时器中断
-	; mov		al, 11111111b	; 屏蔽主8259所有中断
-	out		021h, al	; 主8259, OCW1.
-	call	io_delay
-
-	mov		al, 11111111b	; 屏蔽从8259所有中断
-	out		0A1h, al	; 从8259, OCW1.
-	call	io_delay
-
-	ret
-; END of Init8259A -------------------------------------------------------------
-
-; SetRealmode8259A -------------------------------------------------------------
-SetRealmode8259A:
-	mov		ax, SelectorData
-	mov		fs, ax
-
-	mov		al, 017h
-	out		020h, al	; 主8259, ICW1.
-	call	io_delay
-
-	mov		al, 008h	; IRQ0 对应中断向量 0x8
-	out		021h, al	; 主8259, ICW2.
-	call	io_delay
-
-	mov		al, 001h
-	out		021h, al	; 主8259, ICW4.
-	call	io_delay
-
-	mov		al, [fs:SavedIMREG]	; ┓恢复中断屏蔽寄存器 IMREG 的原值
-	out		021h, al			; ┛
-	call	io_delay
-
-	ret
-; END of SetRealmode8259A ------------------------------------------------------
-
-; Init8253A --------------------------------------------------------------------
-Init8253A:
-	mov		al, 00110110b		; 通道 0 的 CONTROL 字节
-	out		043h, al			; 设置 8253A 芯片, 2 字节计数值, 模式 3, 二进制计数
-	call	io_delay
-
-	mov		ax, 59659			; 频率 20 Hz, 时钟周期为50ms, 设置 COUNT 为 1193180 / 20 = 59659
-	out		040h, al			; 将 COUNT 的低位写入通道 0
-	call	io_delay
-
-	mov		al, ah
-	out		040h, al			; 将 COUNT 的高位写入通道 0
-	call	io_delay
-
-	ret
-; END of Init8253A -------------------------------------------------------------
-
-; io_delay ---------------------------------------------------------------------
-io_delay:
-	nop
-	nop
-	nop
-	nop
-	ret
-; END of io_delay --------------------------------------------------------------
-
 ; ------------------------------------------------------------------------
 ; 显示 AL 中的数字
 ; ------------------------------------------------------------------------
@@ -306,3 +212,97 @@ DispMemSize:
 	pop		esi
 	ret
 ; End of DispMemSize -----------------------------------------------------------
+
+; Init8259A --------------------------------------------------------------------
+Init8259A:
+	mov		al, 011h
+	out		020h, al	; 主8259, ICW1.
+	call	io_delay
+
+	out		0A0h, al	; 从8259, ICW1.
+	call	io_delay
+
+	mov		al, 020h	; IRQ0 对应中断向量 0x20
+	out		021h, al	; 主8259, ICW2.
+	call	io_delay
+
+	mov		al, 028h	; IRQ8 对应中断向量 0x28
+	out		0A1h, al	; 从8259, ICW2.
+	call	io_delay
+
+	mov		al, 004h	; IR2 对应从8259
+	out		021h, al	; 主8259, ICW3.
+	call	io_delay
+
+	mov		al, 002h	; 对应主8259的 IR2
+	out		0A1h, al	; 从8259, ICW3.
+	call	io_delay
+
+	mov		al, 001h
+	out		021h, al	; 主8259, ICW4.
+	call	io_delay
+
+	out		0A1h, al	; 从8259, ICW4.
+	call	io_delay
+
+	mov		al, 11111110b	; 仅仅开启定时器中断
+	; mov		al, 11111111b	; 屏蔽主8259所有中断
+	out		021h, al	; 主8259, OCW1.
+	call	io_delay
+
+	mov		al, 11111111b	; 屏蔽从8259所有中断
+	out		0A1h, al	; 从8259, OCW1.
+	call	io_delay
+
+	ret
+; END of Init8259A -------------------------------------------------------------
+
+; SetRealmode8259A -------------------------------------------------------------
+SetRealmode8259A:
+	mov		ax, SelectorData
+	mov		fs, ax
+
+	mov		al, 017h
+	out		020h, al	; 主8259, ICW1.
+	call	io_delay
+
+	mov		al, 008h	; IRQ0 对应中断向量 0x8
+	out		021h, al	; 主8259, ICW2.
+	call	io_delay
+
+	mov		al, 001h
+	out		021h, al	; 主8259, ICW4.
+	call	io_delay
+
+	mov		al, [fs:SavedIMREG]	; ┓恢复中断屏蔽寄存器 IMREG 的原值
+	out		021h, al			; ┛
+	call	io_delay
+
+	ret
+; END of SetRealmode8259A ------------------------------------------------------
+
+; Init8253A --------------------------------------------------------------------
+Init8253A:
+	mov		al, 00110110b		; 通道 0 的 CONTROL 字节
+	out		043h, al			; 设置 8253A 芯片, 2 字节计数值, 模式 3, 二进制计数
+	call	io_delay
+
+	mov		ax, 59659			; 频率 20 Hz, 时钟周期为50ms, 设置 COUNT 为 1193180 / 20 = 59659
+	out		040h, al			; 将 COUNT 的低位写入通道 0
+	call	io_delay
+
+	mov		al, ah
+	out		040h, al			; 将 COUNT 的高位写入通道 0
+	call	io_delay
+
+	ret
+; END of Init8253A -------------------------------------------------------------
+
+; io_delay ---------------------------------------------------------------------
+io_delay:
+	nop
+	nop
+	nop
+	nop
+	ret
+; END of io_delay --------------------------------------------------------------
