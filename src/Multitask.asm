@@ -111,9 +111,9 @@ dd	0
 _SavedIMREG:			db	0	; Interrupt Mask Register value
 _MemChkBuf:	times	256	db	0
 
-%define tickTimes  20
+%define ticks  20
 _RunningTask:			dd	0
-_TaskPriority:			dd	16*tickTimes, 10*tickTimes, 8*tickTimes, 6*tickTimes
+_TaskPriority:			dd	16*ticks, 10*ticks, 8*ticks, 6*ticks
 _LeftTicks:			dd	0, 0, 0, 0
 
 ; Symbols used in protected mode
