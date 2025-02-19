@@ -27,7 +27,7 @@ DispAL:
 	pop	edx
 	pop	ecx
 	ret
-
+ 
 ; DispInt: Display integer
 DispInt:
 	mov	eax, [esp + 4]
